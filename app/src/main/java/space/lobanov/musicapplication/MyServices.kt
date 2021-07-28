@@ -2,15 +2,15 @@ package space.lobanov.musicapplication
 
 import android.app.*
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import space.lobanov.musicapplication.Constants.constants.CHANNEL_ID
 import space.lobanov.musicapplication.Constants.constants.MUSIC_NOTIFICATION_ID
+import space.lobanov.musicapplication.NotificationReceiver.Companion.ACTION_PREV
 
 
 class MyServices : Service(){
@@ -20,7 +20,7 @@ class MyServices : Service(){
     var mBinder: IBinder = LocalBinder()
     var lengthMusic:Int?=null
     var position:Int = 0
-    val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+
     override fun onBind(intent: Intent?): IBinder {
         return mBinder
     }
@@ -28,7 +28,7 @@ class MyServices : Service(){
     override fun onCreate() {
         super.onCreate()
         initMusic()
-       // createNotificationChannel()
+        createNotificationChannel()
 
     }
 
@@ -46,23 +46,6 @@ class MyServices : Service(){
 
     }
 
-  /* private fun showNotification() {
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0,
-                notificationIntent, 0)
-        val prevIntent = Intent(this,
-                NotificationReceiver::class.java)
-        val prevPendingIntent = PendingIntent.getBroadcast(this,0,prevIntent,
-        PendingIntent.FLAG_UPDATE_CURRENT)
-
-        val notification = NotificationCompat
-                .Builder(this, CHANNEL_ID)
-                .setContentText("Music Player")
-                .setSmallIcon(R.drawable.ic_launcher_background)
-                .setContentIntent(pendingIntent)
-                .build()
-        startForeground(MUSIC_NOTIFICATION_ID, notification)
-    }*/
 
 
  private fun showNotification() {
@@ -70,34 +53,42 @@ class MyServices : Service(){
      val notificationIntent = Intent(this, MainActivity::class.java)
      val pendingIntent = PendingIntent.getActivity(this, 0,
              notificationIntent, 0)
-    // val prevIntent = Intent(this,
-           //  NotificationReceiver::class.java)//lracnelu ban
-     //val prevPendingIntent = PendingIntent.getBroadcast(this, 0, prevIntent,
-        //     PendingIntent.FLAG_UPDATE_CURRENT)
-     val playIntent = Intent(this, MyServices::class.java)
-     // Make head-up notification.
-    // builder.setFullScreenIntent(pendingIntent, true);
-     playIntent.action = ACTION_PLAY
-   //  var largeIconBitmap =  BitmapFactory.decodeResource(resources, R.drawable.ic_baseline_play_circle_filled_24);
-    // builder.setLargeIcon(largeIconBitmap)
-  //   builder.setSmallIcon(R.drawable.ic_baseline_play_circle_filled_24)
 
-     val pendingPlayIntent = PendingIntent.getService(this, 0, playIntent, 0)
-     val playAction = NotificationCompat.Action(R.drawable.ic_baseline_play_circle_filled_24,
-             "", pendingPlayIntent)
+     val prevBtnClickIntent = Intent(this,NotificationReceiver::class.java)
+     prevBtnClickIntent.action = ACTION_PREV
+     val prevClickPendingIntent = PendingIntent.getBroadcast(this,0,prevBtnClickIntent,0)
 
-     builder.addAction(playAction)
-     var notification: Notification = builder
-           //  .Builder(this, CHANNEL_ID)
-             .setContentText("Music Player")
-             .setSmallIcon(R.drawable.ic_baseline_play_circle_filled_24)
-             .setContentIntent(pendingIntent)
-             .build()
+     val playBtnClickIntent = Intent(this,NotificationReceiver::class.java)
+     playBtnClickIntent.action = ACTION_PLAY
+     val playClickPendingIntent = PendingIntent.getBroadcast(this,0,playBtnClickIntent,0)
 
-    /* val notificationManager = NotificationManagerCompat.from(this)
-     notificationManager.notify(1, builder.build())*/
+     //TODO add nextAction button for ACTION_NEXT
 
-     startForeground(MUSIC_NOTIFICATION_ID, notification)
+
+     val collapsedView = RemoteViews(
+         packageName,
+         R.layout.notif_collapsed
+     )
+     val expandedView = RemoteViews(
+         packageName,
+         R.layout.notification_expanded
+     )
+
+     expandedView.setImageViewResource(R.id.prev_img, R.drawable.ic_baseline_skip_previous_24)
+     expandedView.setOnClickPendingIntent(R.id.prev_img, prevClickPendingIntent)
+
+     expandedView.setImageViewResource(R.id.play_img, R.drawable.ic_baseline_play_circle_filled_24)
+     expandedView.setOnClickPendingIntent(R.id.play_img, playClickPendingIntent)
+     //TODO set click pendings nextAction button for ACTION_NEXT
+
+     val nt2 : Notification = NotificationCompat.Builder(this,CHANNEL_ID)
+         .setSmallIcon(R.drawable.ic_baseline_skip_next_24)
+         .setContentIntent(pendingIntent)
+         .setCustomContentView(expandedView)
+         //.setCustomBigContentView(expandedView)
+         .build()
+
+     startForeground(MUSIC_NOTIFICATION_ID, nt2)
 
  }
 
@@ -115,13 +106,10 @@ class MyServices : Service(){
     }
 
     private fun initMusic() {
-       // musicPlayer = MediaPlayer.create(this, Settings.System.DEFAULT_ALARM_ALERT_URI)
         musicPlayer = MediaPlayer.create(this, R.raw.song1)
-       //  val song:ArrayList<Int> =ArrayList()
          song.add(0, R.raw.song1)
         song.add(1, R.raw.song2)
 
-       // musicPlayer = MediaPlayer.create(this,R.raw.song2)
         musicPlayer?.isLooping = true
         musicPlayer?.setVolume(100F, 100F)
     }
